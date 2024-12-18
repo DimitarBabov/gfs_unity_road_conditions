@@ -1,0 +1,9 @@
+Parameter: UGRD
+Level: 10_m_above_ground
+Latitude bounds: -90.0 to 90.0
+Longitude bounds: 0.0 to 360.0
+Source GRIB file: gfs_data/UGRD_10_m_above_ground_gfs.20241218_12_f018.grb2
+Min value: -27.05004150390625
+Max value: 40.70995849609375
+Global Min: -27.05004150390625
+Global Max: 40.70995849609375
