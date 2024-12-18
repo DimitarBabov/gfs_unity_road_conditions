@@ -1,0 +1,49 @@
+# =============== #
+# Unity generated #
+# =============== #
+
+/Library/
+/Temp/
+/Obj/
+/Build/
+/Builds/
+/Logs/
+/MemoryCaptures/
+
+# Avoid uploading crash reports
+*.stacktrace
+
+# ==================================== #
+# Visual Studio / MonoDevelop generated #
+# ==================================== #
+
+ExportedObj/
+.consulo/
+.vs/
+.idea/
+.suo
+.user
+.userprefs
+*.csproj
+*.unityproj
+*.sln
+*.ldb
+*.pidb
+*.booproj
+*.svd
+*.userprefs
+*.opendb
+*.VC.db
+*.VC.VC.opendb
+*.pdb
+
+# ==================== #
+# OS-specific files    #
+# ==================== #
+.DS_Store
+Thumbs.db
+
+# ==================== #
+# Other caches         #
+# ==================== #
+/Assets/AssetStoreTools*
