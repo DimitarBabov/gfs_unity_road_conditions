@@ -1,4 +1,4 @@
-Shader "Custom/ExtractRoadHighlightMaskLatLonNoSaturate_6Params_NoTextureCheck"
+Shader "Custom/ExtractRoadHighlightMaskLatLonNoSaturate_6Params_ShowFullMask"
 {
     Properties
     {
@@ -29,6 +29,9 @@ Shader "Custom/ExtractRoadHighlightMaskLatLonNoSaturate_6Params_NoTextureCheck"
 
         _Threshold ("Color Threshold", Range(0,1)) = 0.0
         _PreserveNonRoad ("Preserve Non-Road (1=Yes, 0=No)", Range(0,1)) = 0
+
+        // Show full mask mode (0 = road logic, 1 = show full mask overlay)
+        _ShowFullMask ("Show Full Mask (0=Road Logic, 1=Full Mask)", Range(0,1)) = 0
 
         // Map bounding box
         _MapMinLon("Map Min Lon", Float) = -180
@@ -89,6 +92,7 @@ Shader "Custom/ExtractRoadHighlightMaskLatLonNoSaturate_6Params_NoTextureCheck"
             float4 _Param6HighlightColor;
             float  _Threshold;
             float  _PreserveNonRoad;
+            float  _ShowFullMask;
 
             float _MapMinLon, _MapMaxLon, _MapMinLat, _MapMaxLat;
             float _MaskMinLon, _MaskMaxLon, _MaskMinLat, _MaskMaxLat;
@@ -99,12 +103,6 @@ Shader "Custom/ExtractRoadHighlightMaskLatLonNoSaturate_6Params_NoTextureCheck"
                 o.pos = UnityObjectToClipPos(v.vertex);
                 o.uv  = v.uv;
                 return o;
-            }
-
-            float ColorDistance(float3 c1, float3 c2)
-            {
-                float3 diff = c1 - c2;
-                return sqrt(dot(diff, diff));
             }
 
             bool Approximately(float a, float b, float epsilon)
@@ -137,14 +135,12 @@ Shader "Custom/ExtractRoadHighlightMaskLatLonNoSaturate_6Params_NoTextureCheck"
                 // Consider pixel white if r,g,b > 0.9
                 bool isWhite = (mSample.r > 0.9 && mSample.g > 0.9 && mSample.b > 0.9);
 
-                if (!isWhite)
-                {
-                    mSample.a = 0.0;
-                }
+                if (!isWhite) mSample.a = 0.0;
+
                 return mSample;
             }
 
-            fixed4 frag(v2f i) : SV_Target
+            float4 frag(v2f i) : SV_Target
             {
                 float4 originalCol = tex2D(_MainTex, i.uv);
 
@@ -169,44 +165,65 @@ Shader "Custom/ExtractRoadHighlightMaskLatLonNoSaturate_6Params_NoTextureCheck"
 
                 bool anyParamVisible = p1Visible || p2Visible || p3Visible || p4Visible || p5Visible || p6Visible;
 
-                if (!anyParamVisible)
+                // Determine first visible param highlight color if any
+                float4 firstParamColor;
+                if (p1Visible) firstParamColor = _Param1HighlightColor;
+                else if (p2Visible) firstParamColor = _Param2HighlightColor;
+                else if (p3Visible) firstParamColor = _Param3HighlightColor;
+                else if (p4Visible) firstParamColor = _Param4HighlightColor;
+                else if (p5Visible) firstParamColor = _Param5HighlightColor;
+                else if (p6Visible) firstParamColor = _Param6HighlightColor; 
+                else firstParamColor = float4(0,0,0,0); // no params visible
+
+                if (_ShowFullMask >= 0.5)
                 {
-                    // No param visible
-                    if (_PreserveNonRoad >= 0.5) return float4(originalCol.rgb, 1.0);
-                    else return float4(0,0,0,0);
-                }
-
-                // Road detection
-                float3 pixelRGB = originalCol.rgb;
-                float3 fillRGB = _RoadFillRGB.rgb;
-                float3 outlineRGB = _RoadOutlineRGB.rgb;
-
-                float distFill = ColorDistance(pixelRGB, fillRGB);
-                float distOutline = ColorDistance(pixelRGB, outlineRGB);
-
-                float fillWeight = 1.0 - saturate(distFill / _Threshold);
-                float outlineWeight = 1.0 - saturate(distOutline / _Threshold);
-                float roadWeight = max(fillWeight, outlineWeight);
-
-                if (roadWeight > 0.0)
-                {
-                    // Choose highlight color based on first visible param
-                    float4 highlight;
-                    if (p1Visible) highlight = _Param1HighlightColor;
-                    else if (p2Visible) highlight = _Param2HighlightColor;
-                    else if (p3Visible) highlight = _Param3HighlightColor;
-                    else if (p4Visible) highlight = _Param4HighlightColor;
-                    else if (p5Visible) highlight = _Param5HighlightColor;
-                    else highlight = _Param6HighlightColor; // p6Visible must be true if reached here
-
-                    highlight.a *= roadWeight;
-                    return highlight;
+                    // Show full mask mode: ignore road detection
+                    if (anyParamVisible)
+                    {
+                        // Just show the highlight color (fully or semi opaque)
+                        return firstParamColor; 
+                    }
+                    else
+                    {
+                        // No param visible
+                        if (_PreserveNonRoad >= 0.5) return float4(originalCol.rgb, 1.0);
+                        else return float4(0,0,0,0);
+                    }
                 }
                 else
                 {
-                    // No roads detected
-                    if (_PreserveNonRoad >= 0.5) return float4(originalCol.rgb, 1.0);
-                    else return float4(0,0,0,0);
+                    // Road detection logic (original)
+                    if (!anyParamVisible)
+                    {
+                        // No param visible
+                        if (_PreserveNonRoad >= 0.5) return float4(originalCol.rgb, 1.0);
+                        else return float4(0,0,0,0);
+                    }
+
+                    // Road detection
+                    float3 pixelRGB = originalCol.rgb;
+                    float3 fillRGB = _RoadFillRGB.rgb;
+                    float3 outlineRGB = _RoadOutlineRGB.rgb;
+
+                    // Calculate roadWeight
+                    float distFill = length(pixelRGB - fillRGB);
+                    float distOutline = length(pixelRGB - outlineRGB);
+                    float fillWeight = 1.0 - saturate(distFill / _Threshold);
+                    float outlineWeight = 1.0 - saturate(distOutline / _Threshold);
+                    float roadWeight = max(fillWeight, outlineWeight);
+
+                    if (roadWeight > 0.0)
+                    {
+                        float4 highlight = firstParamColor;
+                        highlight.a *= roadWeight;
+                        return highlight;
+                    }
+                    else
+                    {
+                        // No roads detected
+                        if (_PreserveNonRoad >= 0.5) return float4(originalCol.rgb, 1.0);
+                        else return float4(0,0,0,0);
+                    }
                 }
             }
             ENDCG

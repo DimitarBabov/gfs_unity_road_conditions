@@ -104,10 +104,10 @@ Material:
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1
-    - _MapMaxLat: -23.23926
-    - _MapMaxLon: -52.375843
-    - _MapMinLat: -42.03129
-    - _MapMinLon: -74.87584
+    - _MapMaxLat: 54.687378
+    - _MapMaxLon: 15.908785
+    - _MapMinLat: 39.522118
+    - _MapMinLon: -6.591215
     - _MaskMaxLat: 90
     - _MaskMaxLon: 180
     - _MaskMinLat: -90
@@ -116,11 +116,18 @@ Material:
     - _Mode: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.02
-    - _PreserveNonRoad: 1
+    - _Param1Visible: 1
+    - _Param2Visible: 1
+    - _Param3Visible: 1
+    - _Param4Visible: 1
+    - _Param5Visible: 1
+    - _Param6Visible: 1
+    - _PreserveNonRoad: 0.786
+    - _ShowFullMask: 0
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
-    - _Threshold: 0.3
+    - _Threshold: 0.341
     - _UVSec: 0
     - _ZWrite: 1
     m_Colors:

@@ -29,11 +29,15 @@ public class ForecastController : MonoBehaviour
 
     private float timer = 0f;
     private int currentForecastIndex = 0;
+    private bool dataReady = false;
+    private bool isPlaying = true; // Controls if forecast auto-plays
 
     private Dictionary<string, List<Texture2D>> paramTextures = new Dictionary<string, List<Texture2D>>();
-    private bool dataReady = false;
 
     private const int MaxParams = 6;
+    private int maxForecastCount = 1; // Max number of forecasts among all selected parameters
+
+    private bool isFullMaskMode = false; // Tracks whether we're showing full mask or not
 
     void Start()
     {
@@ -56,11 +60,14 @@ public class ForecastController : MonoBehaviour
     {
         if (!dataReady || selectedParameters.Count == 0) return;
 
-        timer += Time.deltaTime;
-        if (timer >= updateInterval)
+        if (isPlaying)
         {
-            timer = 0f;
-            AdvanceForecast();
+            timer += Time.deltaTime;
+            if (timer >= updateInterval)
+            {
+                timer = 0f;
+                AdvanceForecast();
+            }
         }
     }
 
@@ -80,12 +87,24 @@ public class ForecastController : MonoBehaviour
             }
         }
 
+        // Compute maxForecastCount (max number of forecasts among selected parameters)
+        if (paramTextures.Count > 0)
+        {
+            maxForecastCount = paramTextures.Values.Select(v => v.Count).DefaultIfEmpty(1).Max();
+            if (maxForecastCount < 1) maxForecastCount = 1;
+        }
+        else
+        {
+            maxForecastCount = 1;
+        }
+
         ApplyHighlightColors();
     }
 
     private void AdvanceForecast()
     {
-        currentForecastIndex++;
+        // Move forward one step in the forecast
+        currentForecastIndex = (currentForecastIndex + 1) % maxForecastCount;
         SetCurrentForecastTextures();
     }
 
@@ -180,5 +199,43 @@ public class ForecastController : MonoBehaviour
             pc.highlightColor = color;
         }
         RefreshParameters();
+    }
+
+    // New Functions
+    public void PlayForecast()
+    {
+        // Resumes automatic advancing of forecast
+        isPlaying = true;
+    }
+
+    public void Pause()
+    {
+        // Pauses automatic advancing
+        isPlaying = false;
+    }
+
+    public void Forward()
+    {
+        // Move forward one step and update
+        // Wrap around using maxForecastCount
+        currentForecastIndex = (currentForecastIndex + 1) % maxForecastCount;
+        SetCurrentForecastTextures();
+    }
+
+    public void Backward()
+    {
+        // Move backward one step and update
+        // Use modulo arithmetic to wrap around
+        currentForecastIndex = (currentForecastIndex - 1 + maxForecastCount) % maxForecastCount;
+        SetCurrentForecastTextures();
+    }
+
+    // Toggle full mask mode
+    public void ToggleFullMask()
+    {
+        isFullMaskMode = !isFullMaskMode;
+        // Set _ShowFullMask property in the shader
+        float modeValue = isFullMaskMode ? 1f : 0f;
+        targetMaterial.SetFloat("_ShowFullMask", modeValue);
     }
 }
